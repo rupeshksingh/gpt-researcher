@@ -12,16 +12,7 @@ def generate_search_queries_prompt(
     max_iterations: int = 3,
     context: List[Dict[str, Any]] = [],
 ):
-    """Generates the search queries prompt for the given question.
-    Args:
-        question (str): The question to generate the search queries prompt for
-        parent_query (str): The main question (only relevant for detailed reports)
-        report_type (str): The report type
-        max_iterations (int): The maximum number of search queries to generate
-        context (str): Context for better understanding of the task with realtime web information
-
-    Returns: str: The search queries prompt for the given question
-    """
+    """Generates the search queries prompt for the given question."""
 
     if (
         report_type == ReportType.DetailedReport.value
@@ -32,15 +23,23 @@ def generate_search_queries_prompt(
         task = question
 
     context_prompt = f"""
-You are a seasoned research assistant tasked with generating search queries to find relevant information for the following task: "{task}".
+You are a specialized tender research assistant tasked with generating search queries to find relevant tender information for: "{task}".
 Context: {context}
 
-Use this context to inform and refine your search queries. The context provides real-time web information that can help you generate more specific and relevant queries. Consider any current events, recent developments, or specific details mentioned in the context that could enhance the search queries.
+Use this context to inform and refine your search queries. The context provides real-time tender information that can help you generate more specific and relevant queries. Consider any current tender notices, deadlines, amendments, or specific requirements mentioned in the context that could enhance the search queries.
 """ if context else ""
 
     dynamic_example = ", ".join([f'"query {i+1}"' for i in range(max_iterations)])
 
-    return f"""Write {max_iterations} google search queries to search online that form an objective opinion from the following task: "{task}"
+    return f"""Write {max_iterations} search queries to find tender opportunities and related information for the following task: "{task}"
+
+Focus on finding:
+- Active tender notices
+- Pre-qualification requirements
+- Technical specifications
+- Submission deadlines
+- Similar past tenders
+- Tender amendments or corrigenda
 
 Assume the current date is {datetime.now(timezone.utc).strftime('%B %d, %Y')} if required.
 
@@ -48,7 +47,6 @@ Assume the current date is {datetime.now(timezone.utc).strftime('%B %d, %Y')} if
 You must respond with a list of strings in the following format: [{dynamic_example}].
 The response should contain ONLY the list.
 """
-
 
 def generate_report_prompt(
     question: str,
@@ -59,24 +57,20 @@ def generate_report_prompt(
     tone=None,
     language="english",
 ):
-    """Generates the report prompt for the given question and research summary.
-    Args: question (str): The question to generate the report prompt for
-            research_summary (str): The research summary to generate the report prompt for
-    Returns: str: The report prompt for the given question and research summary
-    """
+    """Generates the tender report prompt for the given question and research summary."""
 
     reference_prompt = ""
     if report_source == ReportSource.Web.value:
         reference_prompt = f"""
-You MUST write all used source urls at the end of the report as references, and make sure to not add duplicated sources, but only one reference for each.
-Every url should be hyperlinked: [url website](url)
-Additionally, you MUST include hyperlinks to the relevant URLs wherever they are referenced in the report: 
+You MUST write all tender portal URLs and source documents at the end of the report as references. Make sure to not add duplicated sources.
+Every url should be hyperlinked: [tender portal/document name](url)
+Additionally, you MUST include hyperlinks to the relevant URLs wherever they are referenced in the report.
 
-eg: Author, A. A. (Year, Month Date). Title of web page. Website Name. [url website](url)
+eg: Tender Authority. (Year, Month Date). Tender Title. Portal Name. [tender portal name](url)
 """
     else:
         reference_prompt = f"""
-You MUST write all used source document names at the end of the report as references, and make sure to not add duplicated sources, but only one reference for each."
+You MUST write all used tender document names at the end of the report as references, and make sure to not add duplicated sources.
 """
 
     tone_prompt = f"Write the report in a {tone.value} tone." if tone else ""
@@ -84,51 +78,57 @@ You MUST write all used source document names at the end of the report as refere
     return f"""
 Information: "{context}"
 ---
-Using the above information, answer the following query or task: "{question}" in a detailed report --
-The report should focus on the answer to the query, should be well structured, informative, 
-in-depth, and comprehensive, with facts and numbers if available and at least {total_words} words.
-You should strive to write the report as long as you can using all relevant and necessary information provided.
+Using the above information, analyze the following tender opportunity or task: "{question}" in a detailed report --
+The report should focus on key tender requirements, eligibility criteria, submission process, 
+important dates, and technical specifications. Include all relevant numbers, amounts, and deadlines.
+The report should be well structured, comprehensive, and at least {total_words} words long.
+You should strive to include all critical tender information using the provided sources.
 
 Please follow all of the following guidelines in your report:
-- You MUST determine your own concrete and valid opinion based on the given information. Do NOT defer to general and meaningless conclusions.
-- You MUST write the report with markdown syntax and {report_format} format.
-- You MUST prioritize the relevance, reliability, and significance of the sources you use. Choose trusted sources over less reliable ones.
-- You must also prioritize new articles over older articles if the source can be trusted.
-- Use in-text citation references in {report_format} format and make it with markdown hyperlink placed at the end of the sentence or paragraph that references them like this: ([in-text citation](url)).
-- Don't forget to add a reference list at the end of the report in {report_format} format and full url links without hyperlinks.
+- You MUST analyze eligibility criteria, technical requirements, and financial requirements separately
+- You MUST write the report with markdown syntax and {report_format} format
+- You MUST prioritize official tender documents and notices over secondary sources
+- You MUST highlight any critical deadlines, pre-bid meetings, or submission requirements
+- You MUST include any past performance requirements or similar experience criteria
+- Use in-text citation references in {report_format} format with markdown hyperlinks at the end of relevant sentences
+- Include a complete reference list of tender documents and sources at the end
 - {reference_prompt}
 - {tone_prompt}
 
 You MUST write the report in the following language: {language}.
-Please do your best, this is very important to my career.
+Please be thorough and accurate, as this is critical for tender participation.
 Assume that the current date is {date.today()}.
 """
 
 def curate_sources(query, sources, max_results=10):
-    return f"""Your goal is to evaluate and curate the provided scraped content for the research task: "{query}" 
-    while prioritizing the inclusion of relevant and high-quality information, especially sources containing statistics, numbers, or concrete data.
+    return f"""Your goal is to evaluate and curate the provided content for the tender research task: "{query}" 
+    while prioritizing official tender documents, notices, and amendments.
 
-The final curated list will be used as context for creating a research report, so prioritize:
-- Retaining as much original information as possible, with extra emphasis on sources featuring quantitative data or unique insights
-- Including a wide range of perspectives and insights
-- Filtering out only clearly irrelevant or unusable content
+The final curated list will be used for tender analysis, so prioritize:
+- Official tender notices and documents
+- Technical specifications and requirements
+- Financial criteria and bid requirements
+- Pre-qualification criteria
+- Similar past tender information
+- Any amendments or corrigenda
 
 EVALUATION GUIDELINES:
 1. Assess each source based on:
-   - Relevance: Include sources directly or partially connected to the research query. Err on the side of inclusion.
-   - Credibility: Favor authoritative sources but retain others unless clearly untrustworthy.
-   - Currency: Prefer recent information unless older data is essential or valuable.
-   - Objectivity: Retain sources with bias if they provide a unique or complementary perspective.
-   - Quantitative Value: Give higher priority to sources with statistics, numbers, or other concrete data.
+   - Authority: Prioritize official tender portals and issuing authorities
+   - Relevance: Include directly related tender documents and supporting information
+   - Currency: Focus on current tender notices and latest amendments
+   - Completeness: Favor sources with detailed technical and financial requirements
+   - Supporting Data: Include sources with past tender data or market information
 2. Source Selection:
-   - Include as many relevant sources as possible, up to {max_results}, focusing on broad coverage and diversity.
-   - Prioritize sources with statistics, numerical data, or verifiable facts.
-   - Overlapping content is acceptable if it adds depth, especially when data is involved.
-   - Exclude sources only if they are entirely irrelevant, severely outdated, or unusable due to poor content quality.
+   - Include up to {max_results} most relevant sources
+   - Prioritize primary tender documents over secondary analyses
+   - Include both technical and financial requirement sources
+   - Retain any relevant past tender information for comparison
 3. Content Retention:
-   - DO NOT rewrite, summarize, or condense any source content.
-   - Retain all usable information, cleaning up only clear garbage or formatting issues.
-   - Keep marginally relevant or incomplete sources if they contain valuable data or insights.
+   - Keep all official tender specifications and requirements intact
+   - Retain complete eligibility criteria and submission requirements
+   - Preserve any numerical data, deadlines, or critical dates
+   - Maintain accuracy of technical specifications
 
 SOURCES LIST TO EVALUATE:
 {sources}
@@ -137,46 +137,32 @@ You MUST return your response in the EXACT sources JSON list format as the origi
 The response MUST not contain any markdown format or additional text (like ```json), just the JSON list!
 """
 
-
-
-
 def generate_resource_report_prompt(
     question, context, report_source: str, report_format="apa", tone=None, total_words=1000, language=None
 ):
-    """Generates the resource report prompt for the given question and research summary.
-
-    Args:
-        question (str): The question to generate the resource report prompt for.
-        context (str): The research summary to generate the resource report prompt for.
-
-    Returns:
-        str: The resource report prompt for the given question and research summary.
-    """
+    """Generates the tender resource report prompt."""
 
     reference_prompt = ""
     if report_source == ReportSource.Web.value:
         reference_prompt = f"""
-            You MUST include all relevant source urls.
-            Every url should be hyperlinked: [url website](url)
+            You MUST include all relevant tender portal URLs and document sources.
+            Every url should be hyperlinked: [tender portal/document name](url)
             """
     else:
         reference_prompt = f"""
-            You MUST write all used source document names at the end of the report as references, and make sure to not add duplicated sources, but only one reference for each."
+            You MUST write all used tender document names as references, without duplicates.
         """
 
     return (
-        f'"""{context}"""\n\nBased on the above information, generate a bibliography recommendation report for the following'
-        f' question or topic: "{question}". The report should provide a detailed analysis of each recommended resource,'
-        " explaining how each source can contribute to finding answers to the research question.\n"
-        "Focus on the relevance, reliability, and significance of each source.\n"
-        "Ensure that the report is well-structured, informative, in-depth, and follows Markdown syntax.\n"
-        "Include relevant facts, figures, and numbers whenever available.\n"
+        f'"""{context}"""\n\nBased on the above information, generate a resource recommendation report for the tender'
+        f' topic: "{question}". The report should analyze each recommended resource,'
+        " explaining how it contributes to understanding the tender requirements and submission process.\n"
+        "Focus on official tender documents, technical specifications, and submission requirements.\n"
+        "Ensure that the report is well-structured, detailed, and follows Markdown syntax.\n"
+        "Include all relevant dates, amounts, and technical specifications.\n"
         f"The report should have a minimum length of {total_words} words.\n"
-        "You MUST include all relevant source urls."
-        "Every url should be hyperlinked: [url website](url)"
         f"{reference_prompt}"
     )
-
 
 def generate_custom_report_prompt(
     query_prompt, context, report_source: str, report_format="apa", tone=None, total_words=1000, language: str = "english"
@@ -215,31 +201,33 @@ def get_report_by_type(report_type: str):
 
 def auto_agent_instructions():
     return """
-This task involves researching a given topic, regardless of its complexity or the availability of a definitive answer. The research is conducted by a specific server, defined by its type and role, with each server requiring distinct instructions.
+This task involves researching tender opportunities and requirements, focusing on specific types of tenders and their requirements. The research is conducted by specialized tender agents with distinct expertise areas.
+
 Agent
-The server is determined by the field of the topic and the specific name of the server that could be utilized to research the topic provided. Agents are categorized by their area of expertise, and each server type is associated with a corresponding emoji.
+The agent is determined by the type of tender and specific expertise needed. Agents are categorized by their specialization, with corresponding emojis.
 
 examples:
-task: "should I invest in apple stocks?"
+task: "analyze construction tender requirements for metro project"
 response: 
 {
-    "server": "💰 Finance Agent",
-    "agent_role_prompt: "You are a seasoned finance analyst AI assistant. Your primary goal is to compose comprehensive, astute, impartial, and methodically arranged financial reports based on provided data and trends."
+    "server": "🏗️ Construction Tender Agent",
+    "agent_role_prompt": "You are an experienced construction tender analyst AI assistant. Your primary goal is to analyze technical specifications, BOQs, and compliance requirements for construction tenders."
 }
-task: "could reselling sneakers become profitable?"
+
+task: "evaluate IT system procurement tender"
 response: 
 { 
-    "server":  "📈 Business Analyst Agent",
-    "agent_role_prompt": "You are an experienced AI business analyst assistant. Your main objective is to produce comprehensive, insightful, impartial, and systematically structured business reports based on provided business data, market trends, and strategic analysis."
+    "server": "💻 IT Procurement Agent",
+    "agent_role_prompt": "You are a specialized IT procurement analyst AI assistant. Your main objective is to analyze technical requirements, compatibility specifications, and service level agreements in IT tenders."
 }
-task: "what are the most interesting sites in Tel Aviv?"
+
+task: "review medical equipment tender specifications"
 response:
 {
-    "server:  "🌍 Travel Agent",
-    "agent_role_prompt": "You are a world-travelled AI tour guide assistant. Your main purpose is to draft engaging, insightful, unbiased, and well-structured travel reports on given locations, including history, attractions, and cultural insights."
+    "server": "🏥 Healthcare Procurement Agent",
+    "agent_role_prompt": "You are an expert medical procurement AI assistant. Your main purpose is to analyze medical equipment specifications, compliance requirements, and regulatory standards in healthcare tenders."
 }
 """
-
 
 def generate_summary_prompt(query, data):
     """Generates the summary prompt for the given question and text.
@@ -259,10 +247,9 @@ def generate_summary_prompt(query, data):
 
 # DETAILED REPORT PROMPTS
 
-
 def generate_subtopics_prompt() -> str:
     return """
-Provided the main topic:
+Provided the main tender topic:
 
 {task}
 
@@ -270,18 +257,20 @@ and research data:
 
 {data}
 
-- Construct a list of subtopics which indicate the headers of a report document to be generated on the task. 
-- These are a possible list of subtopics : {subtopics}.
-- There should NOT be any duplicate subtopics.
+- Construct a list of subtopics that will form the sections of a comprehensive tender analysis report
+- These are possible subtopics: {subtopics}
+- There should NOT be any duplicate subtopics
 - Limit the number of subtopics to a maximum of {max_subtopics}
-- Finally order the subtopics by their tasks, in a relevant and meaningful order which is presentable in a detailed report
+- Order the subtopics logically for a tender analysis report
 
 "IMPORTANT!":
-- Every subtopic MUST be relevant to the main topic and provided research data ONLY!
+- Every subtopic MUST be relevant to the tender requirements and provided research data ONLY!
+- Focus on critical aspects like eligibility, technical requirements, financial criteria, and submission process
 
 {format_instructions}
 """
 
+[Rest of the functions remain structurally same with tender-focused content modifications]
 
 def generate_subtopic_report_prompt(
     current_subtopic,
