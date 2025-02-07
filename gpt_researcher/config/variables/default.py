@@ -2,11 +2,11 @@ from .base import BaseConfig
 
 DEFAULT_CONFIG: BaseConfig = {
     "RETRIEVER": "tavily",
-    "EMBEDDING": "openai:text-embedding-3-small",
+    "EMBEDDING": "openai:text-embedding-3-large",
     "SIMILARITY_THRESHOLD": 0.42,
-    "FAST_LLM": "openai:gpt-4o-mini",
+    "FAST_LLM": "openai:o3-mini-2025-01-31",
     "SMART_LLM": "openai:gpt-4o-2024-11-20",
-    "STRATEGIC_LLM": "openai:gpt-4o", # Can be used with gpt-o1
+    "STRATEGIC_LLM": "openai:o1-2024-12-17", # Can be used with gpt-o1
     "FAST_TOKEN_LIMIT": 2000,
     "SMART_TOKEN_LIMIT": 4000,
     "STRATEGIC_TOKEN_LIMIT": 4000,
@@ -25,6 +25,6 @@ DEFAULT_CONFIG: BaseConfig = {
     "SCRAPER": "bs",
     "MAX_SUBTOPICS": 3,
     "LANGUAGE": "english",
-    "REPORT_SOURCE": "web",
+    "REPORT_SOURCE": "local",
     "DOC_PATH": "./my-docs"
 }
